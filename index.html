@@ -233,6 +233,7 @@ function getDiffMs(name) {
     return target.getTime() - nowWIB.getTime();
 }
 
+// ANTI-TUKAR: Data diletakkan langsung di tombol
 function generateCardHTML(item, tabIdx) {
     const colors = ['var(--neon-yellow)', 'var(--neon-orange)', 'var(--neon-blue)'];
     const now = new Date(); const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
@@ -245,8 +246,10 @@ function generateCardHTML(item, tabIdx) {
     const btnCol = isSgpLibur ? '#222' : (colors[tabIdx] || 'var(--accent-gold)');
     const btnClass = "cm-btn" + (isKosong && !isSgpLibur ? " btn-pulse-red" : "");
     
-    // PERBAIKAN: Menggunakan Nama Pasaran sebagai pemicu klik
-    return `<div class="card-mini" data-pasaran="${item.pasaran}" onclick="showModalByName('${item.pasaran.replace(/'/g, "\\'")}')">
+    // ENCODE DATA: Data dititipkan di atribut onclick secara aman
+    const safeData = encodeURIComponent(JSON.stringify(item));
+    
+    return `<div class="card-mini" data-pasaran="${item.pasaran}" onclick="showModalSafe('${safeData}')">
         <div class="cm-header"><div class="cm-title">${item.pasaran}</div><div class="cm-date">${item.tanggal}</div></div>
         <div class="cm-timer-box"><div class="cm-timer-value">00:00:00</div></div>
         <button class="${btnClass}" style="background:${isKosong && !isSgpLibur ? '#ff0000' : btnCol}; color:${isKosong && !isSgpLibur ? '#fff' : ''}">${btnLabel}</button></div>`;
@@ -269,14 +272,12 @@ function openTab(idx) {
     }
 }
 
-// PERBAIKAN: Fungsi Modal baru yang mencari berdasarkan Nama Pasaran
-function showModalByName(marketName) {
-    let allData = [...(globalPrediksiData[0] || []), ...(globalPrediksiData[1] || []), ...(globalPrediksiData[2] || [])];
-    const it = allData.find(d => d.pasaran === marketName);
-    if(!it) return;
-
+// FUNGSI MODAL SAFE: Tidak cari di gudang, tapi pakai data yang dibawa tombol
+function showModalSafe(encodedData) {
+    const it = JSON.parse(decodeURIComponent(encodedData));
     const now = new Date(); const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
     const nowWIB = new Date(utc + (3600000 * 7));
+    
     const isKosong = !it.bbfs || it.bbfs === "" || it.bbfs === "-";
 
     if (it.pasaran.toLowerCase().includes("singapore") && (nowWIB.getDay() === 2 || nowWIB.getDay() === 5)) {
@@ -343,7 +344,6 @@ function searchPasaran() {
     sGrid.classList.add('active');
     let all = [...(globalPrediksiData[0] || []), ...(globalPrediksiData[1] || []), ...(globalPrediksiData[2] || [])];
     let res = all.filter(it => it.pasaran.toLowerCase().includes(input));
-    // Search tetap menggunakan tabIdx -1 (default) karena data akan ditarik by Name
     sGrid.innerHTML = res.map((it) => generateCardHTML(it, 3)).join('');
 }
 
