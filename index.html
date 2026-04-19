@@ -18,12 +18,12 @@
         @import url('https://fonts.cdnfonts.com/css/ds-digital');
 
         :root {
-            --bg-color: #1A100D;       /* Cokelat Gelap Logo */
+            --bg-color: #1A100D;       
             --text-color: #ffffff;     
             --card-bg: #251812;        
             --card-shadow: 0 10px 30px rgba(0,0,0,0.8);
             --card-border: rgba(209, 138, 74, 0.15); 
-            --accent-gold: #D18A4A;    /* Karamel Logo */
+            --accent-gold: #D18A4A;    
             --neon-yellow: #facc15;    
             --neon-orange: #F15A24;    
             --neon-blue: #3182ce;      
@@ -76,7 +76,6 @@
 
         .cm-btn { width: 88%; padding: 12px; border-radius: 15px; font-weight: 900; font-size: 11px; text-transform: uppercase; border: none; cursor: pointer; color: #000; letter-spacing: 1px; transition: all 0.2s ease; position: relative; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3), inset 0 2px 3px rgba(255,255,255,0.4); }
         
-        /* ANIMASI HUBUNGI ADMIN */
         @keyframes pulse-red-admin { 0% { background-color: #ff0000; box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 70% { background-color: #aa0000; box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); } 100% { background-color: #ff0000; box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } }
         .btn-pulse-red { animation: pulse-red-admin 1.5s infinite !important; color: #fff !important; }
 
@@ -234,12 +233,11 @@ function getDiffMs(name) {
     return target.getTime() - nowWIB.getTime();
 }
 
-function generateCardHTML(item, tabIdx, itemIdx) {
+function generateCardHTML(item, tabIdx) {
     const colors = ['var(--neon-yellow)', 'var(--neon-orange)', 'var(--neon-blue)'];
     const now = new Date(); const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
     const nowWIB = new Date(utc + (3600000 * 7));
     
-    // CEK APAKAH LIBUR ATAU BBFS KOSONG
     const isSgpLibur = item.pasaran.toLowerCase().includes("singapore") && (nowWIB.getDay() === 2 || nowWIB.getDay() === 5);
     const isKosong = !item.bbfs || item.bbfs === "" || item.bbfs === "-";
 
@@ -247,7 +245,8 @@ function generateCardHTML(item, tabIdx, itemIdx) {
     const btnCol = isSgpLibur ? '#222' : (colors[tabIdx] || 'var(--accent-gold)');
     const btnClass = "cm-btn" + (isKosong && !isSgpLibur ? " btn-pulse-red" : "");
     
-    return `<div class="card-mini" data-pasaran="${item.pasaran}" onclick="showModalByIdx(${tabIdx}, ${itemIdx})">
+    // PERBAIKAN: Menggunakan Nama Pasaran sebagai pemicu klik
+    return `<div class="card-mini" data-pasaran="${item.pasaran}" onclick="showModalByName('${item.pasaran.replace(/'/g, "\\'")}')">
         <div class="cm-header"><div class="cm-title">${item.pasaran}</div><div class="cm-date">${item.tanggal}</div></div>
         <div class="cm-timer-box"><div class="cm-timer-value">00:00:00</div></div>
         <button class="${btnClass}" style="background:${isKosong && !isSgpLibur ? '#ff0000' : btnCol}; color:${isKosong && !isSgpLibur ? '#fff' : ''}">${btnLabel}</button></div>`;
@@ -258,7 +257,7 @@ function renderGrid(idx) {
     if(!globalPrediksiData || !globalPrediksiData[idx]) return;
     let data = [...globalPrediksiData[idx]];
     data.sort((a, b) => getDiffMs(a.pasaran) - getDiffMs(b.pasaran));
-    g.innerHTML = data.map((item, i) => generateCardHTML(item, idx, i)).join('');
+    g.innerHTML = data.map((item) => generateCardHTML(item, idx)).join('');
 }
 
 function openTab(idx) {
@@ -270,12 +269,14 @@ function openTab(idx) {
     }
 }
 
-function showModalByIdx(tabIdx, itemIdx) {
-    if(!globalPrediksiData[tabIdx] || !globalPrediksiData[tabIdx][itemIdx]) return;
-    const it = globalPrediksiData[tabIdx][itemIdx];
+// PERBAIKAN: Fungsi Modal baru yang mencari berdasarkan Nama Pasaran
+function showModalByName(marketName) {
+    let allData = [...(globalPrediksiData[0] || []), ...(globalPrediksiData[1] || []), ...(globalPrediksiData[2] || [])];
+    const it = allData.find(d => d.pasaran === marketName);
+    if(!it) return;
+
     const now = new Date(); const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
     const nowWIB = new Date(utc + (3600000 * 7));
-    
     const isKosong = !it.bbfs || it.bbfs === "" || it.bbfs === "-";
 
     if (it.pasaran.toLowerCase().includes("singapore") && (nowWIB.getDay() === 2 || nowWIB.getDay() === 5)) {
@@ -340,13 +341,10 @@ function searchPasaran() {
     if (input === "") { sGrid.classList.remove('active'); document.getElementById('g'+currentActiveTab).classList.add('active'); return; }
     document.querySelectorAll('.grid-container').forEach(g => g.classList.remove('active'));
     sGrid.classList.add('active');
-    let allPagi = globalPrediksiData[0] || [];
-    let allSiang = globalPrediksiData[1] || [];
-    let allMalam = globalPrediksiData[2] || [];
-    let resPagi = allPagi.filter(it => it.pasaran.toLowerCase().includes(input)).map((it, i) => generateCardHTML(it, 0, i));
-    let resSiang = allSiang.filter(it => it.pasaran.toLowerCase().includes(input)).map((it, i) => generateCardHTML(it, 1, i));
-    let resMalam = allMalam.filter(it => it.pasaran.toLowerCase().includes(input)).map((it, i) => generateCardHTML(it, 2, i));
-    sGrid.innerHTML = [...resPagi, ...resSiang, ...resMalam].join('');
+    let all = [...(globalPrediksiData[0] || []), ...(globalPrediksiData[1] || []), ...(globalPrediksiData[2] || [])];
+    let res = all.filter(it => it.pasaran.toLowerCase().includes(input));
+    // Search tetap menggunakan tabIdx -1 (default) karena data akan ditarik by Name
+    sGrid.innerHTML = res.map((it) => generateCardHTML(it, 3)).join('');
 }
 
 function closeModal() { document.getElementById('prediksiModal').style.display = 'none'; }
