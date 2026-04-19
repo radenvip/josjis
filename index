@@ -210,45 +210,60 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwbNAAAWRC2IsLW_ZsyZfcq
     };
 
     function initApp() {
-      showSkeletons();
-      const savedTheme = localStorage.getItem('app_theme');
-      if (savedTheme === 'light') { document.body.classList.add('light-mode'); updateThemeIcon(true); }
-      google.script.run.withSuccessHandler(s => {
-        if(s && s.wa) { updateDynamicLinks(s.wa, s.referral || ""); }
-      }).getPublicSettings();
-      const savedSandi = localStorage.getItem('member_sandi');
-      if (savedSandi) { autoLogin(savedSandi); } 
-      else { document.getElementById('login-screen').style.display = 'flex'; }
-    }
+  showSkeletons();
+  const savedTheme = localStorage.getItem('app_theme');
+  if (savedTheme === 'light') { document.body.classList.add('light-mode'); updateThemeIcon(true); }
+  
+  // Mengambil pengaturan WA & Referral via API
+  fetch(`${API_URL}?action=getPublicSettings`)
+    .then(res => res.json())
+    .then(s => {
+      if(s && s.wa) { updateDynamicLinks(s.wa, s.referral || ""); }
+    })
+    .catch(err => console.error("Gagal ambil data publik:", err));
 
-    function showSkeletons() {
-      for(let i=0; i<3; i++) {
-        document.getElementById('g'+i).innerHTML = '<div class="skeleton"></div>'.repeat(6);
+  const savedSandi = localStorage.getItem('member_sandi');
+  if (savedSandi) { autoLogin(savedSandi); } 
+  else { document.getElementById('login-screen').style.display = 'flex'; }
+}
+
+function autoLogin(sandi) {
+  fetch(`${API_URL}?action=getPrediksiData&sandi=${sandi}`)
+    .then(res => res.json())
+    .then(response => {
+      if (response === "SALAH") { 
+        localStorage.removeItem('member_sandi'); 
+        document.getElementById('login-screen').style.display = 'flex'; 
+      } else { handleDataSuccess(response); }
+    });
+}
+
+function manualLogin() {
+  let sandi = document.getElementById('sandiInput').value;
+  let pesanError = document.getElementById('pesan-error');
+  
+  // Menampilkan loading sederhana agar user tahu proses sedang jalan
+  pesanError.style.display = 'block';
+  pesanError.style.color = '#facc15';
+  pesanError.innerText = 'MENYAMBUNGKAN KE SERVER...';
+
+  fetch(`${API_URL}?action=getPrediksiData&sandi=${sandi}`)
+    .then(res => res.json())
+    .then(response => {
+      if (response === "SALAH") { 
+        pesanError.style.display = 'block';
+        pesanError.style.color = '#ff4444';
+        pesanError.innerText = 'PIN INVALID! HUBUNGI ADMIN';
+      } else { 
+        localStorage.setItem('member_sandi', sandi); 
+        handleDataSuccess(response); 
       }
-    }
-
-    function updateDynamicLinks(wa, ref) {
-      const waUrl = "https://wa.me/" + wa.toString().replace(/\D/g, '');
-      document.querySelectorAll('.btn-whatsapp').forEach(el => el.href = waUrl);
-      document.getElementById('wa-floating').style.display = 'flex';
-      LINK_PASANG_SEKARANG = ref;
-    }
-
-    function autoLogin(sandi) {
-      google.script.run.withSuccessHandler(response => {
-        if (response === "SALAH") { localStorage.removeItem('member_sandi'); document.getElementById('login-screen').style.display = 'flex'; } 
-        else { handleDataSuccess(response); }
-      }).getPrediksiData(sandi);
-    }
-
-    function manualLogin() {
-      let sandi = document.getElementById('sandiInput').value;
-      google.script.run.withSuccessHandler(response => {
-        if (response === "SALAH") { document.getElementById('pesan-error').style.display = 'block'; } 
-        else { localStorage.setItem('member_sandi', sandi); handleDataSuccess(response); }
-      }).getPrediksiData(sandi);
-    }
-
+    })
+    .catch(err => {
+      pesanError.innerText = 'KONEKSI GAGAL! CEK SINYAL';
+      console.error(err);
+    });
+}
     function handleDataSuccess(response) {
       document.getElementById('login-screen').style.display = 'none';
       globalPrediksiData = response.cards;
