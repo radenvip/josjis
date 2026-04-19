@@ -17,22 +17,21 @@
     <style>
         @import url('https://fonts.cdnfonts.com/css/ds-digital');
 
-        /* PERUBAHAN WARNA MENGIKUTI LOGO */
         :root {
-            --bg-color: #1A100D;       /* Cokelat Gelap dari outline logo */
-            --text-color: #ffffff;     /* Putih bersih dari teks 'Raden' */
-            --card-bg: #251812;        /* Variasi Cokelat untuk kartu */
+            --bg-color: #1A100D;       /* Cokelat Gelap Logo */
+            --text-color: #ffffff;     
+            --card-bg: #251812;        
             --card-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            --card-border: rgba(209, 138, 74, 0.15); /* Border tipis warna karamel */
-            --accent-gold: #D18A4A;    /* Karamel/Emas dari background logo */
-            --neon-yellow: #facc15;    /* Kuning cerah untuk aksen */
-            --neon-orange: #F15A24;    /* Oranye dari elemen bola logo */
-            --neon-blue: #3182ce;      /* Biru dari elemen bola logo */
+            --card-border: rgba(209, 138, 74, 0.15); 
+            --accent-gold: #D18A4A;    /* Karamel Logo */
+            --neon-yellow: #facc15;    
+            --neon-orange: #F15A24;    
+            --neon-blue: #3182ce;      
         }
 
         body.light-mode {
-            --bg-color: #F5F1E9;       /* Putih Gading hangat */
-            --text-color: #1A100D;     /* Teks Cokelat Gelap */
+            --bg-color: #F5F1E9;       
+            --text-color: #1A100D;     
             --card-bg: #ffffff;
             --card-shadow: 0 10px 25px rgba(26, 16, 13, 0.1);
             --card-border: rgba(209, 138, 74, 0.2);
@@ -76,8 +75,10 @@
         .cm-timer-value { font-family: 'DS-Digital'; font-size: 28px; line-height: 1; }
 
         .cm-btn { width: 88%; padding: 12px; border-radius: 15px; font-weight: 900; font-size: 11px; text-transform: uppercase; border: none; cursor: pointer; color: #000; letter-spacing: 1px; transition: all 0.2s ease; position: relative; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3), inset 0 2px 3px rgba(255,255,255,0.4); }
-        .cm-btn::after { content: ''; position: absolute; top: -50%; left: -100%; width: 50%; height: 200%; background: linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent); transform: rotate(30deg); animation: button-shimmer 4s infinite; }
-        @keyframes button-shimmer { 0% { left: -100%; } 20% { left: 150%; } 100% { left: 150%; } }
+        
+        /* ANIMASI HUBUNGI ADMIN */
+        @keyframes pulse-red-admin { 0% { background-color: #ff0000; box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 70% { background-color: #aa0000; box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); } 100% { background-color: #ff0000; box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } }
+        .btn-pulse-red { animation: pulse-red-admin 1.5s infinite !important; color: #fff !important; }
 
         .footer-marquee { position: fixed; bottom: 0; width: 100%; background: #1A100D; border-top: 1px solid var(--card-border); padding: 10px 0; overflow: hidden; white-space: nowrap; z-index: 1000; }
         .marquee-text { display: inline-block; font-family: 'Montserrat'; font-weight: 900; font-size: 11px; color: #887872; text-transform: uppercase; letter-spacing: 2px; animation: smooth-scroll 20s linear infinite; }
@@ -237,14 +238,19 @@ function generateCardHTML(item, tabIdx, itemIdx) {
     const colors = ['var(--neon-yellow)', 'var(--neon-orange)', 'var(--neon-blue)'];
     const now = new Date(); const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
     const nowWIB = new Date(utc + (3600000 * 7));
+    
+    // CEK APAKAH LIBUR ATAU BBFS KOSONG
     const isSgpLibur = item.pasaran.toLowerCase().includes("singapore") && (nowWIB.getDay() === 2 || nowWIB.getDay() === 5);
-    const btnLabel = isSgpLibur ? "SGP LIBUR" : "PREDIKSI";
+    const isKosong = !item.bbfs || item.bbfs === "" || item.bbfs === "-";
+
+    const btnLabel = isSgpLibur ? "SGP LIBUR" : (isKosong ? "HUBUNGI ADMIN" : "PREDIKSI");
     const btnCol = isSgpLibur ? '#222' : (colors[tabIdx] || 'var(--accent-gold)');
+    const btnClass = "cm-btn" + (isKosong && !isSgpLibur ? " btn-pulse-red" : "");
     
     return `<div class="card-mini" data-pasaran="${item.pasaran}" onclick="showModalByIdx(${tabIdx}, ${itemIdx})">
         <div class="cm-header"><div class="cm-title">${item.pasaran}</div><div class="cm-date">${item.tanggal}</div></div>
         <div class="cm-timer-box"><div class="cm-timer-value">00:00:00</div></div>
-        <button class="cm-btn" style="background:${btnCol}">${btnLabel}</button></div>`;
+        <button class="${btnClass}" style="background:${isKosong && !isSgpLibur ? '#ff0000' : btnCol}; color:${isKosong && !isSgpLibur ? '#fff' : ''}">${btnLabel}</button></div>`;
 }
 
 function renderGrid(idx) {
@@ -270,8 +276,17 @@ function showModalByIdx(tabIdx, itemIdx) {
     const now = new Date(); const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
     const nowWIB = new Date(utc + (3600000 * 7));
     
+    const isKosong = !it.bbfs || it.bbfs === "" || it.bbfs === "-";
+
     if (it.pasaran.toLowerCase().includes("singapore") && (nowWIB.getDay() === 2 || nowWIB.getDay() === 5)) {
         document.getElementById('modalBody').innerHTML = `<div style="padding:40px;text-align:center;font-weight:900;">PASARAN SINGAPORE LIBUR</div>`;
+    } else if (isKosong) {
+        document.getElementById('modalBody').innerHTML = `
+            <div style="padding:40px;text-align:center;">
+                <h3 style="font-family:'Montserrat'; font-weight:900; color:var(--text-color);">${it.pasaran}</h3>
+                <p style="color:#ff0000; font-weight:900; margin-top:10px;">PREDIKSI BELUM SIAP / HUBUNGI ADMIN</p>
+                <a href="${document.getElementById('wa-floating').href}" target="_blank" class="btn-pasang" style="background:linear-gradient(135deg, #ff0000, #aa0000); color:#fff; animation:none;">HUBUNGI ADMIN 📲</a>
+            </div>`;
     } else {
         document.getElementById('modalBody').innerHTML = `
             <div class="modal-header"><h3>${it.pasaran}</h3><p>${it.tanggal}</p></div>
