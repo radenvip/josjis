@@ -214,7 +214,7 @@ function manualLogin() {
 
 function handleDataSuccess(response) {
     document.getElementById('login-screen').style.display = 'none';
-    globalPrediksiData = response.cards || response; // Pastikan data terambil meski beda format
+    globalPrediksiData = response.cards || response; 
     openTab(0); setInterval(updateAllTimers, 1000);
 }
 
@@ -240,7 +240,6 @@ function generateCardHTML(item, tabIdx, itemIdx) {
     const btnLabel = isSgpLibur ? "SGP LIBUR" : "PREDIKSI";
     const btnCol = isSgpLibur ? '#222' : (colors[tabIdx] || 'var(--accent-gold)');
     
-    // Fix: Menggunakan data-index agar aman dari crash btoa
     return `<div class="card-mini" data-pasaran="${item.pasaran}" onclick="showModalByIdx(${tabIdx}, ${itemIdx})">
         <div class="cm-header"><div class="cm-title">${item.pasaran}</div><div class="cm-date">${item.tanggal}</div></div>
         <div class="cm-timer-box"><div class="cm-timer-value">00:00:00</div></div>
@@ -271,15 +270,28 @@ function showModalByIdx(tabIdx, itemIdx) {
     const nowWIB = new Date(utc + (3600000 * 7));
     
     if (it.pasaran.toLowerCase().includes("singapore") && (nowWIB.getDay() === 2 || nowWIB.getDay() === 5)) {
-        document.getElementById('modalBody').innerHTML = `<div style="padding:40px;text-align:center;">SINGAPORE LIBUR</div>`;
+        document.getElementById('modalBody').innerHTML = `<div style="padding:40px;text-align:center;font-weight:900;">PASARAN SINGAPORE LIBUR</div>`;
     } else {
         document.getElementById('modalBody').innerHTML = `
             <div class="modal-header"><h3>${it.pasaran}</h3><p>${it.tanggal}</p></div>
+            <div class="divider">POLA TARUNG</div>
+            <table class="modal-table">
+                <tr><td class="label">AS</td><td class="val-text">${it.as||'-'}</td></tr>
+                <tr><td class="label">KOP</td><td class="val-text">${it.kop||'-'}</td></tr>
+                <tr><td class="label">HEAD</td><td class="val-text">${it.kepala||'-'}</td></tr>
+                <tr><td class="label">TAIL</td><td class="val-text">${it.ekor||'-'}</td></tr>
+            </table>
             <div class="divider">RANGKUMAN</div>
             <table class="modal-table">
                 <tr><td class="label">BBFS 7D</td><td class="val-text">${it.bbfs||'-'}</td></tr>
                 <tr><td class="label">AI / AM</td><td class="val-text">${it.ai||'-'}</td></tr>
+                <tr><td class="label">4D (BB)</td><td class="val-text">${it.d4||'-'}</td></tr>
+                <tr><td class="label">3D (BB)</td><td class="val-text">${it.d3||'-'}</td></tr>
                 <tr><td class="label">2D (BB)</td><td class="val-text">${it.d2||'-'}</td></tr>
+                <tr><td class="label">C. BEBAS</td><td class="val-text">${it.c_bebas||'-'}</td></tr>
+                <tr><td class="label">C. MACAU</td><td class="val-text">${it.c_macau||'-'}</td></tr>
+                <tr><td class="label">C. SHIO</td><td class="val-text">${it.c_shio||'-'}</td></tr>
+                <tr><td class="label">I. TWIN</td><td class="val-text">${it.twin||'-'}</td></tr>
             </table>
             <a href="${LINK_PASANG_SEKARANG}" target="_blank" class="btn-pasang">HAJAR SEKARANG 🎰</a>`;
     }
@@ -304,6 +316,21 @@ function updateAllTimers() {
 
 function showSkeletons() {
     for(let i=0; i<3; i++) { document.getElementById('g'+i).innerHTML = '<div class="skeleton"></div>'.repeat(6); }
+}
+
+function searchPasaran() {
+    let input = document.getElementById('searchInput').value.toLowerCase();
+    let sGrid = document.getElementById('searchGrid');
+    if (input === "") { sGrid.classList.remove('active'); document.getElementById('g'+currentActiveTab).classList.add('active'); return; }
+    document.querySelectorAll('.grid-container').forEach(g => g.classList.remove('active'));
+    sGrid.classList.add('active');
+    let allPagi = globalPrediksiData[0] || [];
+    let allSiang = globalPrediksiData[1] || [];
+    let allMalam = globalPrediksiData[2] || [];
+    let resPagi = allPagi.filter(it => it.pasaran.toLowerCase().includes(input)).map((it, i) => generateCardHTML(it, 0, i));
+    let resSiang = allSiang.filter(it => it.pasaran.toLowerCase().includes(input)).map((it, i) => generateCardHTML(it, 1, i));
+    let resMalam = allMalam.filter(it => it.pasaran.toLowerCase().includes(input)).map((it, i) => generateCardHTML(it, 2, i));
+    sGrid.innerHTML = [...resPagi, ...resSiang, ...resMalam].join('');
 }
 
 function closeModal() { document.getElementById('prediksiModal').style.display = 'none'; }
